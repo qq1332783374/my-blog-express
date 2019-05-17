@@ -1,5 +1,6 @@
 const marked = require('marked')
 const Post = require('../lib/mongo').Post
+const CommentModel = require('./comments')
 
 // 将 post 的 content 从 markdown 转换成 html
 Post.plugin('contentToHtml', {
@@ -12,6 +13,27 @@ Post.plugin('contentToHtml', {
     afterFindOne: function (post) {
         if (post) {
             post.content = marked(post.content)
+        }
+        return post
+    }
+})
+
+// 给 post 添加留言数 commentsCount
+Post.plugin('addCommentsCount', {
+    afterFind (posts) {
+        return Promise.all(posts.map((post) => {
+            return CommentModel.getCommentsCount(post._id).then(function (commentsCount) {
+                post.commentsCount = commentsCount
+                return post
+            })
+        }))
+    },
+    afterFindOne (post) {
+        if (post) {
+            return CommentModel.getCommentsCount(post._id).then(function (count) {
+                post.commentsCount = count
+                return post
+            })
         }
         return post
     }
@@ -34,6 +56,7 @@ module.exports = {
                 model: 'User'
             })
             .contentToHtml()
+            .addCommentsCount()
             .exec()
     },
 
@@ -47,6 +70,7 @@ module.exports = {
             .find({ author: query.author })
             .populate({ path: 'author', model: 'User' })
             .sort({ _id: -1 })
+            .addCommentsCount()
             .exec()
     },
 
@@ -75,6 +99,13 @@ module.exports = {
     },
     // 通过文章 id 删除文章
     delPostById (postId) {
-        return Post.deleteOne({ _id: postId }).exec()
+        return Post.deleteOne({ _id: postId })
+            .exec()
+            .then((res) => {
+                // 文章删除后， 再删除留言
+                if (res.result.ok && res.result.n > 0) {
+                    return CommentModel.delCommentByPostId(postId)
+                }
+            })
     }
 }

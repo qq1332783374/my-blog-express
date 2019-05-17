@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon ./app.js"
+    "test": "istanbul cover node_modules/mocha/bin/_mocha",
+    "dev": "nodemon ./app.js",
+    "start": "cross-env NODE_ENV=production pm2 start app.js --name 'myblog'"
   },
   "keywords": [],
   "author": "",
@@ -26,5 +27,11 @@
     "semantic-ui": "^2.4.2",
     "sha1": "^1.1.1",
     "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "cross-env": "^5.2.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^6.1.4",
+    "supertest": "^4.0.2"
   }
 }
